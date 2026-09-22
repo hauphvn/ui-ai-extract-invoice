@@ -1,69 +1,172 @@
-import Image from "next/image";
+// app/page.tsx
+"use client";
 
-export default function Home() {
+import React, { useState } from "react";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+export default function EvaluationDashboard() {
+  const [inputText, setInputText] = useState(
+      "Hóa đơn HD-7788 ngày 21/09/2026 từ KAY KAFÉ. Mua 2 Bánh Ngói Nhân Nhân giá 25000. Tổng cộng thanh toán 50000 VND."
+  );
+  const [loading, setLoading] = useState(false);
+  const [aiResult, setAiResult] = useState<any>(null);
+  const [notes, setNotes] = useState("");
+  const [rating, setRating] = useState(5);
+  const [evalSaved, setEvalSaved] = useState(false);
+
+  // 1. Gửi request trích xuất thông tin
+  const handleExtract = async () => {
+    setLoading(true);
+    setAiResult(null);
+    setEvalSaved(false);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/ai/extract-invoice`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: inputText }),
+      });
+      const data = await res.json();
+      setAiResult(data);
+    } catch (error) {
+      alert("Lỗi kết nối tới NestJS API: " + error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 2. Gửi phản hồi đánh giá chất lượng (HITL)
+  const handleFeedback = async (isAccurate: boolean) => {
+    if (!aiResult) return;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/ai/evaluation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          originalInput: inputText,
+          aiOutput: aiResult,
+          isAccurate,
+          rating,
+          notes,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEvalSaved(true);
+      }
+    } catch (error) {
+      alert("Lỗi khi gửi đánh giá: " + error);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      <main className="min-h-screen bg-slate-900 text-slate-100 p-8">
+        <div className="max-w-5xl mx-auto space-y-6">
+          <header className="border-b border-slate-700 pb-4">
+            <h1 className="text-2xl font-bold text-sky-400">
+              Hệ thống Đánh giá & Giám sát AI (HITL Dashboard)
+            </h1>
+            <p className="text-sm text-slate-400 mt-1">
+              Kiểm tra kết quả trích xuất hóa đơn và gắn nhãn chất lượng mô hình.
+            </p>
+          </header>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Cột trái: Nhập liệu */}
+            <div className="bg-slate-800 p-5 rounded-lg border border-slate-700 flex flex-col justify-between">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-slate-300">
+                  Văn bản hóa đơn gốc:
+                </label>
+                <textarea
+                    rows={7}
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    className="w-full p-3 rounded bg-slate-900 border border-slate-700 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    placeholder="Nhập thông tin hóa đơn cần trích xuất..."
+                />
+              </div>
+              <button
+                  onClick={handleExtract}
+                  disabled={loading}
+                  className="mt-4 w-full py-2.5 px-4 bg-sky-600 hover:bg-sky-500 disabled:bg-slate-600 font-medium rounded transition"
+              >
+                {loading ? "Đang xử lý qua AI..." : "Trích xuất thông tin"}
+              </button>
+            </div>
+
+            {/* Cột phải: Kết quả AI */}
+            <div className="bg-slate-800 p-5 rounded-lg border border-slate-700 flex flex-col justify-between">
+              <div>
+                <h2 className="text-sm font-medium mb-2 text-slate-300">
+                  Kết quả trích xuất JSON (Structured Output):
+                </h2>
+                <div className="bg-slate-900 border border-slate-700 rounded p-3 h-48 overflow-auto font-mono text-xs text-emerald-400">
+                  {aiResult ? (
+                      <pre>{JSON.stringify(aiResult, null, 2)}</pre>
+                  ) : (
+                      <span className="text-slate-500 italic">
+                    Chưa có dữ liệu. Hãy bấm trích xuất...
+                  </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Khu vực đánh giá chất lượng (Human-in-the-loop) */}
+              {aiResult && (
+                  <div className="mt-4 pt-4 border-t border-slate-700 space-y-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-300">Đánh giá chất lượng:</span>
+                      <div className="flex items-center gap-1">
+                        <span>Điểm:</span>
+                        <select
+                            value={rating}
+                            onChange={(e) => setRating(Number(e.target.value))}
+                            className="bg-slate-900 border border-slate-700 rounded px-2 py-0.5"
+                        >
+                          {[5, 4, 3, 2, 1].map((n) => (
+                              <option key={n} value={n}>
+                                {n} sao
+                              </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <input
+                        type="text"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Ghi chú thêm nếu AI trích xuất sai..."
+                        className="w-full text-xs p-2 rounded bg-slate-900 border border-slate-700 text-slate-200"
+                    />
+
+                    <div className="flex gap-2">
+                      <button
+                          onClick={() => handleFeedback(true)}
+                          className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-xs font-medium rounded transition"
+                      >
+                        ✓ Chính xác (Thumbs Up)
+                      </button>
+                      <button
+                          onClick={() => handleFeedback(false)}
+                          className="flex-1 py-1.5 bg-rose-600 hover:bg-rose-500 text-xs font-medium rounded transition"
+                      >
+                        ✗ Có lỗi (Thumbs Down)
+                      </button>
+                    </div>
+
+                    {evalSaved && (
+                        <p className="text-xs text-center text-emerald-400 font-semibold mt-1">
+                          Đã ghi nhận đánh giá thành công vào hệ thống!
+                        </p>
+                    )}
+                  </div>
+              )}
+            </div>
+          </div>
         </div>
       </main>
-    </div>
   );
 }
