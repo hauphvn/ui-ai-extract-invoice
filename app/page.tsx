@@ -314,7 +314,7 @@ Hãy phân tích chi tiết:
                           </div>
                       ) : (
                           <span className="text-slate-500 italic text-xs">
-          Bấm nút "Bắt đầu Phân tích chuyên sâu" để AI kiểm toán đơn giá, kiểm tra sai sót số học và gợi ý tối ưu chi phí...
+          Bấm nút "Bắt đầu Phân tích" để AI phân tích đơn giá, kiểm tra sai sót số học và gợi ý tối ưu chi phí...
         </span>
                       )}
                     </div>
